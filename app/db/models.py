@@ -27,7 +27,7 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime)
     total_products: Mapped[int] = mapped_column()
     products: Mapped[list["Product"]] = relationship(
-        back_populates="jobs",
+        back_populates="job",
         cascade="all, delete-orphan"
     )
 
@@ -39,8 +39,8 @@ class Product(Base):
                                         ForeignKey("jobs.id"))
     query: Mapped[str] = mapped_column(String)
     position: Mapped[int] = mapped_column(Integer)
-    jobs: Mapped["Job"] = relationship(
-        back_populates="products"
+    job: Mapped["Job"] = relationship(
+        back_populates="product"
     )
     searches: Mapped[list["Search"]] = relationship(
         back_populates="products",
@@ -62,6 +62,6 @@ class Search(Base):
     error: Mapped[str | None] = mapped_column()
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
-    products: Mapped["Product"] = relationship(
+    product: Mapped["Product"] = relationship(
         back_populates="searches",
     )
