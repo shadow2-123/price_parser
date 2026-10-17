@@ -1,6 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Integer, DateTime, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Integer, DateTime, String, ForeignKey, UniqueConstraint, Numeric
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 
 
@@ -40,10 +41,10 @@ class Product(Base):
     query: Mapped[str] = mapped_column(String)
     position: Mapped[int] = mapped_column(Integer)
     job: Mapped["Job"] = relationship(
-        back_populates="product"
+        back_populates="products"
     )
     searches: Mapped[list["Search"]] = relationship(
-        back_populates="products",
+        back_populates="product",
         cascade="all, delete-orphan",
     )
 
@@ -64,4 +65,22 @@ class Search(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
     product: Mapped["Product"] = relationship(
         back_populates="searches",
+    )
+    offers: Mapped[list["Offer"]] = relationship(
+        back_populates="search",
+        cascade="all, delete-orphan",
+    )
+
+class Offer(Base):
+    __tablename__ = "offers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    search_id: Mapped[int] = mapped_column(Integer,
+                                           ForeignKey("searches.id"))
+    name: Mapped[str] = mapped_column(String)
+    price: Mapped[Decimal] = mapped_column(Numeric)
+    url: Mapped[str] = mapped_column(String)
+
+    search: Mapped["Search"] = relationship(
+        back_populates="offers",
     )
