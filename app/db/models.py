@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import Integer, DateTime, String, ForeignKey
+from sqlalchemy import Integer, DateTime, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 
 
@@ -39,18 +39,28 @@ class Product(Base):
     query: Mapped[str] = mapped_column(String)
     position: Mapped[int] = mapped_column(Integer)
     jobs: Mapped[list["Job"]] = relationship(
-        back_populates="product", cascade="all, delete-orphan"
+        back_populates="product"
+    )
+    searches: Mapped[list["Search"]] = relationship(
+        back_populates="product",
+        cascade="all, delete-orphan",
     )
 
 class Search(Base):
     __tablename__ = "searches"
+    __table_args__ = (
+        UniqueConstraint("product_id", "store"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     product_id: Mapped[int] = mapped_column(Integer,
                                             ForeignKey("products.id"))
     store: Mapped[Store] = mapped_column()
-    status: Mapped[Status] = mapped_column()
-    attempts: Mapped[int] = mapped_column()
+    status: Mapped[Status] = mapped_column(default=Status.pending)
+    attempts: Mapped[int] = mapped_column(default=0)
     error: Mapped[str | None] = mapped_column()
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    product: Mapped["Product"] = relationship(
+        back_populates="searches",
+    )
