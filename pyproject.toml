@@ -9,7 +9,8 @@ dependencies = [
   "fastapi",
   "uvicorn",
   "sqlalchemy",
-  "aiosqlite"
+  "aiosqlite",
+  "pydantic-settings>=2.15.0",
 ]
 
 [tool.uv.sources]
