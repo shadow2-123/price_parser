@@ -14,7 +14,7 @@ class JobsRepository:
 
     async def get_all(self) -> list[Job]:
         res = await self.session.scalars(select(Job))
-        return res.all()
+        return list(res.all())
 
     async def create_job(self, total_products: int) -> Job:
         job = Job(total_products=total_products)
