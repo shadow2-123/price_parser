@@ -62,6 +62,6 @@ class Search(Base):
     error: Mapped[str | None] = mapped_column()
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
-    product: Mapped["Product"] = relationship(
+    products: Mapped["Product"] = relationship(
         back_populates="searches",
     )
