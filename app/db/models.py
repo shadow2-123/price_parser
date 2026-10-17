@@ -25,7 +25,8 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime,
+                                                 default=datetime.now)
     total_products: Mapped[int] = mapped_column()
     products: Mapped[list["Product"]] = relationship(
         back_populates="job",
@@ -78,7 +79,7 @@ class Offer(Base):
     search_id: Mapped[int] = mapped_column(Integer,
                                            ForeignKey("searches.id"))
     name: Mapped[str] = mapped_column(String)
-    price: Mapped[Decimal] = mapped_column(Numeric)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     url: Mapped[str] = mapped_column(String)
 
     search: Mapped["Search"] = relationship(
