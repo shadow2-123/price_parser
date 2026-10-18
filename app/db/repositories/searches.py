@@ -52,7 +52,8 @@ class SearchesRepository:
                             search_id: int,
                             status: Status,
                             error: str | None = None) -> None:
-        res = await self.session.scalars(select(Search).where(Search.id == search_id))
+        res = await self.session.scalars(select(Search).where(Search.id == search_id,
+                                                              Search.status == Status.running,))
         search = res.first()
         if search:
             search.status = status
@@ -75,7 +76,8 @@ class SearchesRepository:
                 Search.product_id.in_(product_ids),
                 Search.status == Status.pending,
             )
-            .values(status=Status.canceled)
+            .values(status=Status.canceled,
+                    finished_at=datetime.now(),)
         )
 
         await self.session.execute(stmt)
