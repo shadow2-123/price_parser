@@ -20,11 +20,35 @@ class SearchesRepository:
         return search
 
     async def get_next_search(self, store: Store) -> Search | None:
-        res = await self.session.scalars(select(Search).where(Search.store == store,
-                                                             Search.status == Status.pending).order_by(Search.id))
-        return res.first()
+        next_search_id = (
+            select(Search.id)
+            .where(
+                Search.store == store,
+                Search.status == Status.pending,
+            )
+            .order_by(Search.id)
+            .limit(1)
+            .scalar_subquery()
+        )
 
-    async def mark_finished(self,
+        stmt = (
+            update(Search)
+            .where(
+                Search.id == next_search_id,
+                Search.status == Status.pending,
+            )
+            .values(
+                status=Status.running,
+                started_at=datetime.now(),
+                attempts=Search.attempts + 1,
+            )
+            .returning(Search)
+        )
+
+        result = await self.session.scalars(stmt)
+        return result.one_or_none()
+
+    async def finish_search(self,
                             search_id: int,
                             status: Status,
                             error: str | None = None) -> None:
