@@ -1,3 +1,5 @@
 .idea
 .venv
 uv.lock
+*.db
+.env
