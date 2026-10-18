@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,3 +33,8 @@ class SearchesRepository:
         if search:
             search.status = status
             search.error = error
+            search.finished_at = datetime.now()
+
+    async def get_searches_by_product(self, product_id: int) -> list[Search]:
+        res = await self.session.scalars(select(Search).where(Search.product_id == product_id))
+        return list(res.all())
