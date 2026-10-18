@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Store, Search, Product, Status
@@ -14,14 +14,14 @@ class SearchesRepository:
             self,
             product_id: int,
             store: Store,) -> Search:
-        search = Search(product=product_id, store=store)
+        search = Search(product_id=product_id, store=store)
         self.session.add(search)
         await self.session.flush()
         return search
 
     async def get_next_search(self, store: Store) -> Search | None:
-        res = await self.session.scalars(select(Search).where(Search.store == store and
-                                                             Search.status == Status.pending))
+        res = await self.session.scalars(select(Search).where(Search.store == store,
+                                                             Search.status == Status.pending).order_by(Search.id))
         return res.first()
 
     async def mark_finished(self,
@@ -38,3 +38,20 @@ class SearchesRepository:
     async def get_searches_by_product(self, product_id: int) -> list[Search]:
         res = await self.session.scalars(select(Search).where(Search.product_id == product_id))
         return list(res.all())
+
+    async def cancel_job_searches(self, job_id: int) -> None:
+        product_ids = (
+            select(Product.id)
+            .where(Product.job_id == job_id)
+        )
+
+        stmt = (
+            update(Search)
+            .where(
+                Search.product_id.in_(product_ids),
+                Search.status == Status.pending,
+            )
+            .values(status=Status.canceled)
+        )
+
+        await self.session.execute(stmt)
