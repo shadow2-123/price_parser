@@ -19,7 +19,7 @@ class SearchesRepository:
         await self.session.flush()
         return search
 
-    async def get_next_search(self, store: Store) -> Search | None:
+    async def take_next_search(self, store: Store) -> Search | None:
         next_search_id = (
             select(Search.id)
             .where(
