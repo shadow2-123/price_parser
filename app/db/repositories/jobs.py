@@ -1,7 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.db.models import Job
+from app.db.models import Job, Product, Search
 
 
 class JobsRepository:
@@ -21,3 +22,16 @@ class JobsRepository:
         self.session.add(job)
         await self.session.flush()
         return job
+
+    async def get_with_details(self, job_id: int) -> Job | None:
+        stmt = (
+            select(Job)
+            .options(
+                selectinload(Job.products)
+                .selectinload(Product.searches)
+                .selectinload(Search.offers)
+            )
+            .where(Job.id == job_id)
+        )
+
+        return await self.session.scalar(stmt)

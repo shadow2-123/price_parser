@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db.init import init_db
-from app.db.session import async_engine, async_session_factory
-from app.services.jobs import JobsService
+from app.db.session import async_engine
+from app.api.jobs import router as jobs_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,3 +17,4 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(jobs_router)
