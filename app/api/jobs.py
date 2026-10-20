@@ -1,11 +1,14 @@
+import asyncio
+from io import BytesIO
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import async_session_factory
 from app.db.repositories.jobs import JobsRepository
-from app.services.excel_import import extract_queries
+from app.services.excel_handler import extract_queries, export_job_excel
 from app.services.jobs import JobsService
 from fastapi import Request
 
@@ -128,7 +131,7 @@ async def upload_job(
     data = await file.read()
 
     try:
-        queries = extract_queries(data)
+        queries = await asyncio.to_thread(extract_queries, data)
     except Exception:
         raise HTTPException(
             status_code=422,
@@ -147,3 +150,33 @@ async def upload_job(
     request.app.state.dispatcher.wake_all()
 
     return {"id": job_id}
+
+
+@router.get("/{job_id}/export")
+async def export_job(
+    job_id: int,
+    session: SessionDep,
+):
+    repo = JobsRepository(session)
+    job = await repo.get_with_details(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Задание не найдено",
+        )
+
+    data = await asyncio.to_thread(export_job_excel, job)
+
+    return StreamingResponse(
+        BytesIO(data),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="job_{job_id}.xlsx"'
+            ),
+        },
+    )
