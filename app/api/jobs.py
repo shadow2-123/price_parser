@@ -180,3 +180,64 @@ async def export_job(
             ),
         },
     )
+
+
+@router.get("/{job_id}/progress")
+async def get_job_progress(
+    job_id: int,
+    session: SessionDep,
+):
+    repo = JobsRepository(session)
+
+    job = await repo.get(job_id)
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Задание не найдено",
+        )
+
+    progress = await repo.get_progress(job_id)
+
+    finished_statuses = (
+        "found",
+        "not_found",
+        "failed",
+        "canceled",
+    )
+
+    stores = {}
+    overall_total = 0
+    overall_completed = 0
+
+    for store, statuses in progress.items():
+        total = sum(statuses.values())
+
+        completed = sum(
+            statuses[status]
+            for status in finished_statuses
+        )
+
+        stores[store] = {
+            "total": total,
+            "completed": completed,
+            "percent": round(
+                completed / total * 100, 1
+            ) if total else 0.0,
+            "statuses": statuses,
+        }
+
+        overall_total += total
+        overall_completed += completed
+
+    return {
+        "job_id": job_id,
+        "overall": {
+            "total": overall_total,
+            "completed": overall_completed,
+            "percent": round(
+                overall_completed / overall_total * 100, 1
+            ) if overall_total else 0.0,
+        },
+        "stores": stores,
+    }

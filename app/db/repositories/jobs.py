@@ -1,8 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import Job, Product, Search
+from app.db.models import Job, Product, Search, Status, Store
 
 
 class JobsRepository:
@@ -35,3 +35,30 @@ class JobsRepository:
         )
 
         return await self.session.scalar(stmt)
+
+    async def get_progress(self, job_id: int) -> dict:
+        stmt = (
+            select(
+                Search.store,
+                Search.status,
+                func.count(Search.id),
+            )
+            .join(Product, Search.product_id == Product.id)
+            .where(Product.job_id == job_id)
+            .group_by(Search.store, Search.status)
+        )
+
+        result = await self.session.execute(stmt)
+
+        progress = {
+            store.value: {
+                status.value: 0
+                for status in Status
+            }
+            for store in Store
+        }
+
+        for store, status, count in result.all():
+            progress[store.value][status.value] = count
+
+        return progress

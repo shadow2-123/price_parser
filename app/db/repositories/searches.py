@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Store, Search, Product, Status
@@ -48,7 +48,7 @@ class SearchesRepository:
             update(Search)
             .where(
                 Search.id == next_search_id,
-                Search.status == Status.in_progress,
+                Search.status == Status.pending,
             )
             .values(
                 status=Status.in_progress,
