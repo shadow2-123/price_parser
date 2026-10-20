@@ -19,6 +19,19 @@ class SearchesRepository:
         await self.session.flush()
         return search
 
+    async def get_queued(self, store: Store) -> Search | None:
+        stmt = (
+            select(Search)
+            .where(
+                Search.store == store,
+                Search.status == Status.queued,
+            )
+            .order_by(Search.id)
+            .limit(1)
+        )
+
+        return await self.session.scalar(stmt)
+
     async def take_next_search(self, store: Store) -> Search | None:
         next_search_id = (
             select(Search.id)
@@ -38,7 +51,7 @@ class SearchesRepository:
                 Search.status == Status.pending,
             )
             .values(
-                status=Status.running,
+                status=Status.queued,
                 started_at=datetime.now(),
                 attempts=Search.attempts + 1,
             )
@@ -48,17 +61,28 @@ class SearchesRepository:
         result = await self.session.scalars(stmt)
         return result.one_or_none()
 
-    async def finish_search(self,
-                            search_id: int,
-                            status: Status,
-                            error: str | None = None) -> None:
-        res = await self.session.scalars(select(Search).where(Search.id == search_id,
-                                                              Search.status == Status.running,))
-        search = res.first()
-        if search:
-            search.status = status
-            search.error = error
-            search.finished_at = datetime.now()
+    async def finish_search(
+            self,
+            search_id: int,
+            status: Status,
+            error: str | None = None,
+    ) -> bool:
+        stmt = (
+            update(Search)
+            .where(
+                Search.id == search_id,
+                Search.status == Status.queued,
+            )
+            .values(
+                status=status,
+                error=error,
+                finished_at=datetime.now(),
+            )
+            .returning(Search.id)
+        )
+
+        result = await self.session.scalar(stmt)
+        return result is not None
 
     async def get_searches_by_product(self, product_id: int) -> list[Search]:
         res = await self.session.scalars(select(Search).where(Search.product_id == product_id))

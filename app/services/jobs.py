@@ -36,3 +36,14 @@ class JobsService:
             job_id = job.id
 
         return job_id
+
+    async def cancel_job(self, job_id: int) -> bool:
+        async with self.session.begin():
+            job = await self.jobs.get(job_id)
+
+            if job is None:
+                return False
+
+            await self.searches.cancel_job_searches(job_id)
+
+        return True

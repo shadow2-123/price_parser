@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     )
 
     database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'database.db'}"
+    dns_parser_url: str = "http://127.0.0.1:8101"
+    citilink_parser_url: str = "http://127.0.0.1:8102"
+    onlinetrade_parser_url: str = "http://127.0.0.1:8103"
+
+    parser_callback_url: str = "http://127.0.0.1:8001/api/parser-callback"
+    parser_api_key: str
 
 
 settings = Settings()

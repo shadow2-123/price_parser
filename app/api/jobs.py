@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import async_session_factory
 from app.db.repositories.jobs import JobsRepository
 from app.services.jobs import JobsService
-
+from fastapi import Request
 
 router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
 
@@ -23,6 +23,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 async def create_job(
     queries: Annotated[list[str], Body(embed=True)],
     session: SessionDep,
+    request: Request,
 ):
     if not queries:
         raise HTTPException(
@@ -32,6 +33,8 @@ async def create_job(
 
     service = JobsService(session)
     job_id = await service.create_job(queries)
+
+    request.app.state.dispatcher.wake_all()
 
     return {"id": job_id}
 
@@ -94,3 +97,17 @@ async def get_job(job_id: int, session: SessionDep):
             )
         ],
     }
+
+@router.post("/{job_id}/cancel")
+async def cancel_job(job_id: int, session: SessionDep):
+    service = JobsService(session)
+
+    success = await service.cancel_job(job_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="Задание не найдено",
+        )
+
+    return {"id": job_id, "canceled": True}
