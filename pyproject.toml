@@ -6,8 +6,10 @@ dependencies = [
   "pydantic",
   "fastapi",
   "uvicorn",
-  "sqlalchemy",
+  "sqlalchemy[asyncio]",
   "aiosqlite",
   "pydantic-settings>=2.15.0",
-  "httpx"
+  "httpx",
+  "openpyxl",
+  "python-multipart>=0.0.32",
 ]

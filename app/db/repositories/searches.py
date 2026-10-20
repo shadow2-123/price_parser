@@ -32,6 +32,30 @@ class SearchesRepository:
 
         return await self.session.scalar(stmt)
 
+    async def set_queued(self,search_id: int) -> None:
+        stmt = (
+            update(Search)
+            .where(
+                Search.id == search_id,
+            )
+            .values(
+                status=Status.queued,
+            )
+        )
+        await self.session.execute(stmt)
+
+    async def set_failed(self,search_id: int) -> None:
+        stmt = (
+            update(Search)
+            .where(
+                Search.id == search_id,
+            )
+            .values(
+                status=Status.failed,
+            )
+        )
+        await self.session.execute(stmt)
+
     async def take_next_search(self, store: Store) -> Search | None:
         next_search_id = (
             select(Search.id)
@@ -51,9 +75,7 @@ class SearchesRepository:
                 Search.status == Status.pending,
             )
             .values(
-                status=Status.queued,
                 started_at=datetime.now(),
-                attempts=Search.attempts + 1,
             )
             .returning(Search)
         )

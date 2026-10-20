@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import async_session_factory
 from app.db.repositories.jobs import JobsRepository
+from app.services.excel_import import extract_queries
 from app.services.jobs import JobsService
 from fastapi import Request
 
@@ -111,3 +112,38 @@ async def cancel_job(job_id: int, session: SessionDep):
         )
 
     return {"id": job_id, "canceled": True}
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload_job(
+    file: Annotated[UploadFile, File()],
+    session: SessionDep,
+    request: Request,
+):
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(
+            status_code=422,
+            detail="Поддерживаются только .xlsx файлы",
+        )
+
+    data = await file.read()
+
+    try:
+        queries = extract_queries(data)
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail="Не удалось прочитать Excel-файл",
+        )
+
+    if not queries:
+        raise HTTPException(
+            status_code=422,
+            detail="Excel-файл не содержит артикулов",
+        )
+
+    service = JobsService(session)
+    job_id = await service.create_job(queries)
+
+    request.app.state.dispatcher.wake_all()
+
+    return {"id": job_id}

@@ -94,6 +94,10 @@ class ParserDispatcher:
 
                     search_id, query = task
 
+                    async with async_session_factory() as session:
+                        async with session.begin():
+                            await SearchesRepository(session).set_queued(search_id)
+
                     await self.client.submit(
                         store=store,
                         search_id=search_id,
@@ -101,6 +105,9 @@ class ParserDispatcher:
                     )
 
                 except Exception:
+                    async with async_session_factory() as session:
+                        async with session.begin():
+                            await SearchesRepository(session).set_failed(search_id)
                     logger.exception(
                         "Failed to submit search %s to %s",
                         search_id,
