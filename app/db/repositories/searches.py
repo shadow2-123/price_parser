@@ -19,7 +19,7 @@ class SearchesRepository:
         await self.session.flush()
         return search
 
-    async def get_queued(self, store: Store) -> Search | None:
+    async def get_in_progress(self, store: Store) -> Search | None:
         stmt = (
             select(Search)
             .where(

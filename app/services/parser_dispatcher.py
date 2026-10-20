@@ -59,7 +59,7 @@ class ParserDispatcher:
             async with session.begin():
                 repo = SearchesRepository(session)
 
-                search = await repo.get_queued(store)
+                search = await repo.get_in_progress(store)
 
                 if search is None:
                     search = await repo.take_next_search(store)
