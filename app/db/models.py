@@ -10,7 +10,7 @@ class Base(DeclarativeBase):
 
 class Status(Enum):
     pending = "pending"
-    queued = "queued"
+    in_progress = "in_progress"
     found = "found"
     failed = "failed"
     not_found = "not_found"

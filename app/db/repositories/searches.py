@@ -24,37 +24,13 @@ class SearchesRepository:
             select(Search)
             .where(
                 Search.store == store,
-                Search.status == Status.queued,
+                Search.status == Status.in_progress,
             )
             .order_by(Search.id)
             .limit(1)
         )
 
         return await self.session.scalar(stmt)
-
-    async def set_queued(self,search_id: int) -> None:
-        stmt = (
-            update(Search)
-            .where(
-                Search.id == search_id,
-            )
-            .values(
-                status=Status.queued,
-            )
-        )
-        await self.session.execute(stmt)
-
-    async def set_failed(self,search_id: int) -> None:
-        stmt = (
-            update(Search)
-            .where(
-                Search.id == search_id,
-            )
-            .values(
-                status=Status.failed,
-            )
-        )
-        await self.session.execute(stmt)
 
     async def take_next_search(self, store: Store) -> Search | None:
         next_search_id = (
@@ -72,10 +48,12 @@ class SearchesRepository:
             update(Search)
             .where(
                 Search.id == next_search_id,
-                Search.status == Status.pending,
+                Search.status == Status.in_progress,
             )
             .values(
+                status=Status.in_progress,
                 started_at=datetime.now(),
+                attempts=Search.attempts + 1,
             )
             .returning(Search)
         )
@@ -93,7 +71,7 @@ class SearchesRepository:
             update(Search)
             .where(
                 Search.id == search_id,
-                Search.status == Status.queued,
+                Search.status == Status.in_progress,
             )
             .values(
                 status=status,
