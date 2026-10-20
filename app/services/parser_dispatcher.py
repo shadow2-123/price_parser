@@ -51,18 +51,16 @@ class ParserDispatcher:
         for store in Store:
             self.wake(store)
 
+    @staticmethod
     async def _get_task(
-        self,
-        store: Store,
+            store: Store,
     ) -> tuple[int, str] | None:
         async with async_session_factory() as session:
             async with session.begin():
                 repo = SearchesRepository(session)
 
-                # Сначала восстанавливаем уже выбранный поиск
                 search = await repo.get_queued(store)
 
-                # Если такого нет, резервируем следующий
                 if search is None:
                     search = await repo.take_next_search(store)
 
@@ -87,16 +85,15 @@ class ParserDispatcher:
         while True:
             await event.wait()
             event.clear()
-
+            search_id = 0
             while True:
-                task = await self._get_task(store)
-
-                if task is None:
-                    break
-
-                search_id, query = task
-
                 try:
+                    task = await self._get_task(store)
+                    if task is None:
+                        break
+
+                    search_id, query = task
+
                     await self.client.submit(
                         store=store,
                         search_id=search_id,
@@ -113,6 +110,4 @@ class ParserDispatcher:
                     await asyncio.sleep(15)
                     continue
 
-                # Задача принята сервисом.
-                # Следующую отправим после callback.
                 break

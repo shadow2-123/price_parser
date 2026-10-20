@@ -1,14 +1,11 @@
 import re
-from datetime import datetime
 from decimal import Decimal
-from secrets import compare_digest
-from typing import Annotated, Literal
+from typing import Literal
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.config import settings
 from app.db.models import Search, Status
 from app.db.repositories.offers import OffersRepository
 from app.db.repositories.searches import SearchesRepository
@@ -35,17 +32,7 @@ class ParserResult(BaseModel):
 async def parser_callback(
     payload: ParserResult,
     request: Request,
-    x_api_key: Annotated[str | None, Header()] = None,
 ):
-    if not compare_digest(
-        x_api_key or "",
-        settings.parser_api_key,
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid API key",
-        )
-
     match = re.fullmatch(
         r"price_parser:([1-9][0-9]*)",
         payload.task_id,

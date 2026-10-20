@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     onlinetrade_parser_url: str = "http://127.0.0.1:8103"
 
     parser_callback_url: str = "http://127.0.0.1:8001/api/parser-callback"
-    parser_api_key: str
 
 
 settings = Settings()

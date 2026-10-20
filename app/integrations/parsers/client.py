@@ -30,9 +30,6 @@ class ParserClient:
                 "priority": "low",
                 "callback_url": settings.parser_callback_url,
             },
-            headers={
-                "X-Api-Key": settings.parser_api_key,
-            },
         )
 
         response.raise_for_status()
