@@ -6,7 +6,10 @@ from app.db.models import Store
 
 class ParserClient:
     def __init__(self):
-        self.client = httpx.AsyncClient(timeout=10.0)
+        self.client = httpx.AsyncClient(
+            timeout=10.0,
+            trust_env=False,
+        )
 
         self.urls = {
             Store.dns: settings.dns_parser_url,

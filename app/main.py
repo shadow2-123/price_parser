@@ -7,7 +7,8 @@ from app.api.parser_callback import router as parser_router
 from app.db.init import init_db
 from app.db.session import async_engine
 from app.services.parser_dispatcher import ParserDispatcher
-
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +27,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-
 app.include_router(jobs_router)
 app.include_router(parser_router)
+app.mount(
+    "/",
+    StaticFiles(
+        directory=Path(__file__).resolve().parent.parent / "static",
+        html=True,
+    ),
+    name="static",
+)

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Парсер цен — Панель</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <header class="page-header">
+      <div>
+        <div class="eyebrow">ПАРСЕР ЦЕН</div>
+        <h1>Панель управления</h1>
+      </div>
+      <div class="connection" id="connection" role="status" aria-live="polite">
+        <span class="connection-dot"></span>
+        <span id="connection-text">Подключение…</span>
+      </div>
+    </header>
+
+    <details class="panel create-panel" id="create-panel">
+      <summary class="create-summary"><span>Новое задание</span><span class="summary-hint">Ввести товары или загрузить Excel <span class="summary-chevron">⌄</span></span></summary>
+      <div class="create-inner">
+      <section aria-labelledby="create-title">
+      <div class="panel-heading">
+        <div>
+          <h2 id="create-title">Новое задание</h2>
+          <p class="muted">Введите названия товаров или артикулы — по одному на строку.</p>
+        </div>
+        <span class="subtle-tag" id="query-count">0 позиций</span>
+      </div>
+
+      <form id="create-form">
+        <label for="queries" class="field-label">Список товаров</label>
+        <textarea id="queries" name="queries" rows="6" spellcheck="false" placeholder="RTX 5070&#10;Ryzen 5 7500F&#10;Samsung 990 EVO 1TB" aria-describedby="create-hint"></textarea>
+        <div class="form-footer">
+          <p class="muted hint" id="create-hint">Будет создано по одному поиску для каждого магазина.</p>
+          <div class="button-group">
+            <input type="file" id="excel-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+            <button class="button button-secondary" type="button" id="upload-button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+              Загрузить Excel
+            </button>
+            <button class="button button-primary" type="submit" id="create-button" disabled>
+              Создать задание
+            </button>
+          </div>
+        </div>
+      </form>
+      </section>
+      </div>
+    </details>
+
+    <div class="workspace">
+    <section class="panel jobs-panel" aria-labelledby="jobs-title">
+      <div class="panel-heading compact">
+        <div>
+          <h2 id="jobs-title">Задания</h2>
+          <p class="muted">Выберите задание для просмотра результатов.</p>
+        </div>
+        <button class="button button-primary button-small" id="refresh-jobs" type="button">Обновить</button>
+      </div>
+      <div class="jobs-list" id="jobs-list" aria-label="Список заданий">
+        <p class="empty-state">Загрузка заданий…</p>
+      </div>
+    </section>
+
+    <div id="job-content" class="job-content" hidden>
+      <section class="panel" aria-labelledby="progress-title">
+        <div class="panel-heading">
+          <div>
+            <div class="section-kicker" id="selected-job-label">ЗАДАНИЕ</div>
+            <h2 id="progress-title">Ход выполнения</h2>
+            <p class="muted" id="job-created"></p>
+          </div>
+          <div class="button-group">
+            <button class="button button-secondary button-small" id="cancel-job" type="button">Отменить</button>
+            <a class="button button-primary button-small" id="export-job" href="#">Скачать Excel</a>
+          </div>
+        </div>
+        <div id="progress-content" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="results-title">
+        <div class="panel-heading compact">
+          <div>
+            <h2 id="results-title">Результаты поиска</h2>
+            <p class="muted" id="results-subtitle">Предложения от DNS, Ситилинк и Onlinetrade.</p>
+          </div>
+          <button class="button button-primary button-small" type="button" id="refresh-details">Обновить</button>
+        </div>
+
+        <div class="filters">
+          <label class="visually-hidden" for="filter-query">Поиск по товару</label>
+          <input id="filter-query" type="search" placeholder="Найти товар…" autocomplete="off">
+          <label class="visually-hidden" for="filter-status">Фильтр по статусу</label>
+          <select id="filter-status">
+            <option value="all">Все товары</option>
+            <option value="found">С предложениями</option>
+            <option value="not_found">Не найдено</option>
+            <option value="failed">С ошибками</option>
+            <option value="active">В обработке</option>
+            <option value="canceled">Отменённые</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th scope="col">Товар</th>
+                <th scope="col">DNS</th>
+                <th scope="col">Ситилинк</th>
+                <th scope="col">Onlinetrade</th>
+                <th scope="col"><span class="visually-hidden">Подробнее</span></th>
+              </tr>
+            </thead>
+            <tbody id="results-body">
+              <tr><td colspan="5" class="empty-state">Загрузка результатов…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span class="muted" id="results-count"></span>
+          <div class="pager">
+            <button class="button button-secondary button-small" type="button" id="prev-page" disabled>Назад</button>
+            <span class="page-indicator" id="page-indicator"></span>
+            <button class="button button-secondary button-small" type="button" id="next-page" disabled>Далее</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    </div>
+
+    <footer class="app-footer">price_parser · DNS / Citilink / Onlinetrade</footer>
+  </main>
+
+  <div class="toast" id="toast" role="alert" aria-live="assertive" hidden></div>
+</body>
+</html>
