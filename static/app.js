@@ -31,6 +31,7 @@ const state = {
   filterQuery: "",
   filterStatus: "all",
   busySubmit: false,
+  retryingJobs: new Set(),
   loadingFor: null,
   jobsRequest: 0,
   detailsRequest: 0,
@@ -173,6 +174,8 @@ function selectJob(id) {
   el("results-count").textContent = "";
   el("page-indicator").textContent = "";
   el("cancel-job").disabled = true;
+  el("retry-failed").disabled = true;
+  el("retry-failed").textContent = "Повторить ошибки (0)";
   el("export-job").href = `${API}/${id}/export`;
   renderJobs();
   const url = new URL(window.location.href);
@@ -232,6 +235,10 @@ function renderProgress() {
   const pct = percent(overall.percent);
   const statuses = Object.values(stores).map((store) => store.statuses || {});
   const count = (status) => statuses.reduce((total, group) => total + (Number(group[status]) || 0), 0);
+  const failed = count("failed");
+  const retrying = state.retryingJobs.has(state.selectedJobId);
+  el("retry-failed").disabled = retrying || failed === 0;
+  el("retry-failed").textContent = retrying ? "Повторяем…" : `Повторить ошибки (${failed})`;
   const canceled = count("canceled");
   const complete = jobComplete(state.progress);
   const label = complete ? (canceled ? "Завершено с отменой" : "Завершено") : "В работе";
@@ -455,6 +462,31 @@ async function cancelCurrentJob() {
   }
 }
 
+async function retryFailed() {
+  const id = state.selectedJobId;
+  if (!id || !state.progress || state.retryingJobs.has(id)) return;
+  state.retryingJobs.add(id);
+  renderProgress();
+  try {
+    const result = await request(`${API}/${id}/retry-failed`, { method: "POST" });
+    toast(`Задание #${id}: повторно поставлено в очередь ${result.restarted} поисков.`);
+    if (state.selectedJobId === id) {
+      // Invalidate any poll started before the retry; resume polling even
+      // if the immediate refresh fails.
+      state.detailsRequest += 1;
+      state.loadingFor = null;
+      state.progress = null;
+      el("retry-failed").disabled = true;
+      await loadDetails();
+    }
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    state.retryingJobs.delete(id);
+    renderProgress();
+  }
+}
+
 function init() {
   el("queries").addEventListener("input", updateQueryCount);
   el("create-form").addEventListener("submit", (event) => { void submitQueries(event); });
@@ -490,6 +522,8 @@ function init() {
   });
   el("prev-page").addEventListener("click", () => { state.page -= 1; renderResults(); });
   el("next-page").addEventListener("click", () => { state.page += 1; renderResults(); });
+
+  el("retry-failed").addEventListener("click", () => { void retryFailed(); });
 
   updateQueryCount();
   const urlJob = Number(new URLSearchParams(window.location.search).get("job"));

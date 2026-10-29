@@ -54,7 +54,7 @@ class ParserDispatcher:
     @staticmethod
     async def _get_task(
             store: Store,
-    ) -> tuple[int, str] | None:
+    ) -> tuple[int, str, int] | None:
         async with async_session_factory() as session:
             async with session.begin():
                 repo = SearchesRepository(session)
@@ -77,7 +77,7 @@ class ParserDispatcher:
                         f"Product not found for search {search.id}"
                     )
 
-                return search.id, query
+                return search.id, query, search.run_number
 
     async def _worker(self, store: Store) -> None:
         event = self.events[store]
@@ -92,12 +92,13 @@ class ParserDispatcher:
                     if task is None:
                         break
 
-                    search_id, query = task
+                    search_id, query, run_number = task
 
                     await self.client.submit(
                         store=store,
                         search_id=search_id,
                         query=query,
+                        run_number=run_number,
                     )
 
                 except Exception:

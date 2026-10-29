@@ -47,3 +47,10 @@ class JobsService:
             await self.searches.cancel_job_searches(job_id)
 
         return True
+
+    async def retry_failed(self, job_id: int) -> int | None:
+        async with self.session.begin():
+            if await self.jobs.get(job_id) is None:
+                return None
+
+            return await self.searches.retry_failed(job_id)

@@ -22,8 +22,13 @@ class ParserClient:
         store: Store,
         search_id: int,
         query: str,
+        run_number: int,
     ) -> None:
-        task_id = f"price_parser:{search_id}"
+        task_id = (
+            f"price_parser:{search_id}"
+            if run_number == 1
+            else f"price_parser:{search_id}:{run_number}"
+        )
 
         response = await self.client.post(
             f"{self.urls[store]}/tasks",

@@ -34,10 +34,10 @@ async def parser_callback(
     request: Request,
 ):
     match = re.fullmatch(
-        r"price_parser:([1-9][0-9]*)",
+        r"price_parser:([1-9][0-9]*)(?::([1-9][0-9]*))?",
         payload.task_id,
     )
-
+    run_number = int(match.group(2) or 1)
     if match is None:
         raise HTTPException(
             status_code=400,
@@ -56,6 +56,7 @@ async def parser_callback(
                 search_id=search_id,
                 status=final_status,
                 error=payload.error,
+                run_number=run_number,
             )
 
             if updated:
@@ -79,6 +80,15 @@ async def parser_callback(
                         detail="Search not found",
                     )
 
+                if run_number < existing.run_number:
+                    return {"task_id": payload.task_id, "status": "received"}
+
+                if run_number != existing.run_number:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Unexpected run_number",
+                    )
+                
                 if existing.status != final_status:
                     raise HTTPException(
                         status_code=409,

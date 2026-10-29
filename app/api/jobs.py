@@ -241,3 +241,19 @@ async def get_job_progress(
         },
         "stores": stores,
     }
+
+@router.post("/{job_id}/retry-failed")
+async def retry_failed(
+    job_id: int,
+    session: SessionDep,
+    request: Request,
+):
+    restarted = await JobsService(session).retry_failed(job_id)
+
+    if restarted is None:
+        raise HTTPException(status_code=404, detail="Задание не найдено")
+
+    if restarted:
+        request.app.state.dispatcher.wake_all()
+
+    return {"restarted": restarted}

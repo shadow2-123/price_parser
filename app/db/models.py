@@ -64,11 +64,11 @@ class Search(Base):
                                             ForeignKey("products.id"))
     store: Mapped[Store] = mapped_column()
     status: Mapped[Status] = mapped_column(default=Status.pending)
+    run_number: Mapped[int] = mapped_column(default=1, server_default="1")
     attempts: Mapped[int] = mapped_column(default=0)
     error: Mapped[str | None] = mapped_column()
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
-
 
     product: Mapped["Product"] = relationship(
         back_populates="searches",

@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import select, update, func
+from sqlalchemy import select, update, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Store, Search, Product, Status
+from app.db.models import Store, Search, Product, Status, Offer
 
 
 class SearchesRepository:
@@ -65,12 +65,14 @@ class SearchesRepository:
             self,
             search_id: int,
             status: Status,
+            run_number: int,
             error: str | None = None,
     ) -> bool:
         stmt = (
             update(Search)
             .where(
                 Search.id == search_id,
+                Search.run_number == run_number,
                 Search.status == Status.in_progress,
             )
             .values(
@@ -105,3 +107,31 @@ class SearchesRepository:
         )
 
         await self.session.execute(stmt)
+
+    async def retry_failed(self, job_id: int) -> int:
+        product_ids = select(Product.id).where(Product.job_id == job_id)
+
+        stmt = (
+            update(Search)
+            .where(
+                Search.product_id.in_(product_ids),
+                Search.status == Status.failed,
+            )
+            .values(
+                status=Status.pending,
+                run_number=Search.run_number + 1,
+                error=None,
+                started_at=None,
+                finished_at=None,
+            )
+            .returning(Search.id)
+        )
+
+        search_ids = list((await self.session.scalars(stmt)).all())
+
+        if search_ids:
+            await self.session.execute(
+                delete(Offer).where(Offer.search_id.in_(search_ids))
+            )
+
+        return len(search_ids)
