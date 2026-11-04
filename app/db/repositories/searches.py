@@ -116,6 +116,7 @@ class SearchesRepository:
             .where(
                 Search.product_id.in_(product_ids),
                 Search.status == Status.failed,
+                Search.store != Store.onlinetrade
             )
             .values(
                 status=Status.pending,
