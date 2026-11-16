@@ -28,8 +28,6 @@ class JobsService:
                 )
 
                 for store in Store:
-                    if store == Store.onlinetrade:
-                        continue
                     await self.searches.create_search(
                         product_id=product.id,
                         store=store,
