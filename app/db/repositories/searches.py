@@ -24,7 +24,9 @@ class SearchesRepository:
             select(Search)
             .where(
                 Search.store == store,
-                Search.status == Status.in_progress,
+                Search.status.in_([Status.captcha_required,
+                                   Status.in_progress]),
+
             )
             .order_by(Search.id)
             .limit(1)
@@ -73,7 +75,8 @@ class SearchesRepository:
             .where(
                 Search.id == search_id,
                 Search.run_number == run_number,
-                Search.status == Status.in_progress,
+                Search.status.in_([Status.captcha_required,
+                                   Status.in_progress]),
             )
             .values(
                 status=status,
@@ -135,3 +138,27 @@ class SearchesRepository:
             )
 
         return len(search_ids)
+
+    async def update_search_status(
+            self,
+            search_id: int,
+            store: Store,
+            run_number: int,
+            status: Status,
+    ) -> bool:
+        stmt = (
+            update(Search)
+            .where(
+                Search.id == search_id,
+                Search.store == store,
+                Search.run_number == run_number,
+                Search.status.in_([
+                    Status.in_progress,
+                    Status.captcha_required,
+                ]),
+            )
+            .values(status=status)
+            .returning(Search.id)
+        )
+
+        return await self.session.scalar(stmt) is not None

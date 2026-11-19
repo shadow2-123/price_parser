@@ -15,6 +15,7 @@ class Status(Enum):
     failed = "failed"
     not_found = "not_found"
     canceled = "canceled"
+    captcha_required = "captcha_required"
 
 class Store(Enum):
     dns = "dns"

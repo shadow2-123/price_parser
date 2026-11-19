@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.db.models import Search, Status
+from app.db.models import Search, Status, Store
 from app.db.repositories.offers import OffersRepository
 from app.db.repositories.searches import SearchesRepository
 from app.db.session import async_session_factory
@@ -105,4 +105,66 @@ async def parser_callback(
     return {
         "task_id": payload.task_id,
         "status": "received",
+    }
+
+
+class ParserStatusUpdate(BaseModel):
+    task_id: str
+    status: Literal["in_progress", "captcha_required"]
+
+
+@router.post("/api/parsers/{store}/status")
+async def parser_status(
+    store: Store,
+    payload: ParserStatusUpdate,
+):
+    match = re.fullmatch(
+        r"price_parser:([1-9][0-9]*)(?::([1-9][0-9]*))?",
+        payload.task_id,
+    )
+
+    if match is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid task_id",
+        )
+
+    search_id = int(match.group(1))
+    run_number = int(match.group(2) or 1)
+
+    async with async_session_factory() as session:
+        async with session.begin():
+            search = await session.get(Search, search_id)
+
+            if search is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Search not found",
+                )
+
+            if search.store != store:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Search belongs to another store",
+                )
+
+            if run_number > search.run_number:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Unexpected run_number",
+                )
+
+            updated = await SearchesRepository(
+                session
+            ).update_search_status(
+                search_id=search_id,
+                store=store,
+                run_number=run_number,
+                status=Status(payload.status),
+            )
+
+    return {
+        "task_id": payload.task_id,
+        "status": "received",
+        "updated": updated,
     }
